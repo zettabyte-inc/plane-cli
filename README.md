@@ -1,4 +1,8 @@
-# PlaneCLI
+# PlaneCLI (zettabyte fork)
+
+> **Zettabyte fork** of [cpatrickalves/plane-cli](https://github.com/cpatrickalves/plane-cli), adding
+> support for self-hosted Plane instances behind **Cloudflare Access** — see
+> [Self-hosted behind Cloudflare Access](#self-hosted-behind-cloudflare-access-zettabyte).
 
 A command-line interface for [Plane.so](https://plane.so) (SaaS or Self-hosted) that lets you manage projects, work items, cycles, modules, documents, and more — directly from the terminal.
 
@@ -68,6 +72,46 @@ After a version bump or a new dependency, refresh the tool install to update its
 ```bash
 uv tool install --force -e .
 ```
+
+## Self-hosted behind Cloudflare Access (zettabyte)
+
+Zettabyte's Plane lives at `https://help.zettabyte.space` behind Cloudflare Access, so every
+request must carry two CF service-token headers on top of the Plane API key. This fork injects
+them automatically when configured.
+
+Install:
+
+```bash
+uv tool install git+https://github.com/zettabyte-inc/plane-cli
+```
+
+Auth resolution (highest first): env vars `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` →
+`~/.plane_api` keys `cf_access_client_id` / `cf_access_client_secret` → the shared env file
+`$PLANE_ENV_FILE` (default `~/.config/zettabyte/plane.env`, the same file used by the zskills
+curl wrapper). If that env file already exists, the CLI needs **zero configuration**:
+
+```bash
+# ~/.config/zettabyte/plane.env (chmod 600, never committed)
+CF_ACCESS_CLIENT_ID=<shared service token id, ends .access>
+CF_ACCESS_CLIENT_SECRET=<shared service token secret>
+PLANE_API_KEY=<YOUR personal token: help.zettabyte.space → Profile settings → Personal access tokens>
+PLANE_BASE_URL=https://help.zettabyte.space
+PLANE_WORKSPACE_SLUG=zettabyte
+```
+
+Notes:
+
+- A trailing `/api/v1` on `PLANE_BASE_URL` is tolerated and stripped (the SDK appends it itself).
+- `PLANE_WORKSPACE_SLUG` is accepted as an alias for `PLANE_WORKSPACE`.
+- The CF service token is a shared org secret that only gets you past the Cloudflare edge;
+  your identity in Plane comes from your **personal** `PLANE_API_KEY` — don't share it.
+
+Troubleshooting:
+
+- **302 / HTML pointing at `cloudflareaccess.com`** — CF headers missing or the service token
+  was rotated/revoked. Check `~/.config/zettabyte/plane.env`.
+- **401** — bad or missing `PLANE_API_KEY`.
+- Smoke test: `planecli whoami` should print your own name and email.
 
 ## Command Reference
 

@@ -88,7 +88,26 @@ def configure() -> None:
         error_console.print("[bold red]Error:[/] All fields are required.")
         sys.exit(1)
 
-    save_config(base_url, api_key, workspace)
+    console.print()
+    console.print("[dim]If the instance sits behind Cloudflare Access, enter the service-token")
+    console.print("[dim]credentials; press Enter to skip for plane.so SaaS or open instances.[/]")
+    cf_access_client_id = input("CF Access client id (optional): ").strip()
+    cf_access_client_secret = ""
+    if cf_access_client_id:
+        cf_access_client_secret = input("CF Access client secret: ").strip()
+        if not cf_access_client_secret:
+            error_console.print(
+                "[bold red]Error:[/] CF Access client secret is required with a client id."
+            )
+            sys.exit(1)
+
+    save_config(
+        base_url,
+        api_key,
+        workspace,
+        cf_access_client_id or None,
+        cf_access_client_secret or None,
+    )
 
     # Clear cache when credentials change (data may be from different instance)
     cache_dir = get_cache_dir()

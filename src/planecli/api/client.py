@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from plane.api import base_resource
 from plane.client import PlaneClient
 from plane.errors import HttpError, PlaneError
 
@@ -10,6 +11,24 @@ from planecli.exceptions import APIError, AuthenticationError, PlaneCLIError
 
 _client: PlaneClient | None = None
 _config: Config | None = None
+
+# Cloudflare Access support: self-hosted instances behind CF Zero Trust need
+# service-token headers on every request or the CF edge 302s to a login page.
+# BaseResource._headers is the single choke point for all SDK request headers,
+# so wrap it once here — this covers the singleton client, async_sdk's
+# per-batch clients, and every nested sub-resource session.
+_orig_headers = base_resource.BaseResource._headers
+
+
+def _headers_with_cf_access(self: base_resource.BaseResource) -> dict[str, str]:
+    headers = _orig_headers(self)
+    if _config and _config.cf_access_client_id and _config.cf_access_client_secret:
+        headers["CF-Access-Client-Id"] = _config.cf_access_client_id
+        headers["CF-Access-Client-Secret"] = _config.cf_access_client_secret
+    return headers
+
+
+base_resource.BaseResource._headers = _headers_with_cf_access
 
 
 def get_config(

@@ -8,6 +8,13 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
+def _isolate_env_file(tmp_path, monkeypatch):
+    """Keep tests away from a developer's real ~/.config/zettabyte/plane.env."""
+    monkeypatch.setattr("planecli.config.DEFAULT_ENV_FILE", tmp_path / "no-plane.env")
+    monkeypatch.delenv("PLANE_ENV_FILE", raising=False)
+
+
+@pytest.fixture(autouse=True)
 async def _setup_test_cache():
     """Configure cashews with mem:// backend for all tests (no disk I/O)."""
     from planecli.cache import cache, set_no_cache
